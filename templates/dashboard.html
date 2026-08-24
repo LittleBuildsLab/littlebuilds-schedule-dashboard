@@ -3,104 +3,589 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Automatically refresh the dashboard every 60 seconds -->
     <meta http-equiv="refresh" content="60">
-
     <title>LittleBuilds Schedule Dashboard</title>
-
     <style>
+        :root {
+            color-scheme: dark;
+            --page: #0d1622;
+            --surface: #152231;
+            --surface-raised: #1b2b3b;
+            --border: rgba(181, 205, 219, 0.12);
+            --text: #f5f8fa;
+            --muted: #91a6b6;
+            --study: #6f8eea;
+            --project: #9a7bdd;
+            --work: #d49a55;
+            --planning: #4faea5;
+            --personal: #cf718f;
+            --scheduled: #6fa888;
+            --buffer: #758494;
+            --now: #f0c36d;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #111827;
-            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(79, 174, 165, 0.08), transparent 32rem),
+                var(--page);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
         .dashboard {
-            padding: 30px;
+            width: min(1900px, 100%);
+            margin: 0 auto;
+            padding: 20px;
         }
 
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-mark {
+            display: grid;
+            width: 42px;
+            height: 42px;
+            place-items: center;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+            background: var(--surface-raised);
+            font-size: 21px;
+        }
+
+        h1, h2, h3, p { margin: 0; }
+
         h1 {
-            margin-top: 0;
+            font-size: clamp(20px, 2vw, 28px);
+            letter-spacing: -0.03em;
+        }
+
+        .eyebrow {
+            margin-bottom: 4px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        .refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #68c4a0;
+            box-shadow: 0 0 0 4px rgba(104, 196, 160, 0.12);
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(520px, 1.45fr) minmax(360px, 0.75fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .panel,
+        .status-card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: rgba(21, 34, 49, 0.94);
+            box-shadow: 0 16px 38px rgba(0, 0, 0, 0.18);
+        }
+
+        .day-panel { padding: 18px; }
+
+        .panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 14px;
+        }
+
+        .panel-heading h2 {
+            font-size: 21px;
+            letter-spacing: -0.02em;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 7px 12px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend i {
+            width: 8px;
+            height: 8px;
+            border-radius: 3px;
+        }
+
+        .all-day-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 34px;
+            margin: 0 0 10px 74px;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.025);
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .all-day-event {
+            padding: 5px 9px;
+            border-radius: 7px;
+            background: color-mix(in srgb, var(--event-color) 24%, transparent);
+            color: var(--text);
+        }
+
+        .timeline {
+            position: relative;
+            height: clamp(670px, calc(100vh - 160px), 880px);
+            margin-left: 74px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background:
+                linear-gradient(to right, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.008)),
+                var(--surface);
+        }
+
+        .hour-line {
+            position: absolute;
+            right: 0;
+            left: 0;
+            border-top: 1px solid rgba(181, 205, 219, 0.09);
+        }
+
+        .hour-label {
+            position: absolute;
+            right: calc(100% + 13px);
+            width: 60px;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .event-block {
+            --event-color: var(--scheduled);
+            position: absolute;
+            right: 12px;
+            left: 12px;
+            min-height: 46px;
+            overflow: hidden;
+            padding: 9px 12px 9px 15px;
+            border: 1px solid color-mix(in srgb, var(--event-color) 52%, transparent);
+            border-left: 4px solid var(--event-color);
+            border-radius: 10px;
+            background:
+                linear-gradient(
+                    90deg,
+                    color-mix(in srgb, var(--event-color) 25%, var(--surface-raised)),
+                    color-mix(in srgb, var(--event-color) 9%, var(--surface-raised))
+                );
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+        }
+
+        .event-block.past {
+            filter: saturate(0.55);
+            opacity: 0.37;
+        }
+
+        .event-block.current {
+            z-index: 3;
+            border-color: color-mix(in srgb, var(--event-color) 76%, white 8%);
+            box-shadow:
+                0 0 0 2px color-mix(in srgb, var(--event-color) 22%, transparent),
+                0 12px 24px rgba(0, 0, 0, 0.24);
+        }
+
+        .event-title {
+            overflow: hidden;
+            font-size: 14px;
+            font-weight: 750;
+            line-height: 1.25;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 5px;
+            color: rgba(245, 248, 250, 0.72);
+            font-size: 10px;
+        }
+
+        .category-chip {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .now-line {
+            position: absolute;
+            z-index: 5;
+            right: 0;
+            left: -1px;
+            height: 2px;
+            background: var(--now);
+            box-shadow: 0 0 10px rgba(240, 195, 109, 0.38);
+            pointer-events: none;
+        }
+
+        .now-line::before {
+            position: absolute;
+            top: 50%;
+            left: -5px;
+            width: 10px;
+            height: 10px;
+            transform: translateY(-50%);
+            border-radius: 50%;
+            background: var(--now);
+            content: "";
+        }
+
+        .side {
+            display: grid;
+            gap: 16px;
         }
 
         .status-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 12px;
         }
 
-        .card {
-            background: #1f2937;
-            border-radius: 16px;
-            padding: 24px;
+        .status-card {
+            position: relative;
+            min-height: 138px;
+            overflow: hidden;
+            padding: 17px;
         }
 
-        .label {
-            font-size: 14px;
+        .status-card::before {
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3px;
+            background: var(--event-color);
+            content: "";
+        }
+
+        .status-label {
+            margin-bottom: 17px;
+            color: var(--muted);
+            font-size: 10px;
+            font-weight: 750;
+            letter-spacing: 0.13em;
             text-transform: uppercase;
-            opacity: 0.7;
-            margin-bottom: 10px;
         }
 
-        .big-text {
-            font-size: 28px;
-            font-weight: bold;
+        .status-title {
+            font-size: clamp(16px, 1.6vw, 21px);
+            font-weight: 760;
+            line-height: 1.2;
         }
 
-        .schedule-grid {
+        .status-time {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .week-panel { padding: 18px; }
+
+        .week-list {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 9px;
+            max-height: calc(100vh - 270px);
+            overflow-y: auto;
+            padding-right: 4px;
+            scrollbar-color: #35495c transparent;
+        }
+
+        .day-group {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.018);
+        }
+
+        .day-group.today {
+            border-color: rgba(79, 174, 165, 0.36);
+            background: rgba(79, 174, 165, 0.05);
+        }
+
+        .day-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            padding: 10px 12px 7px;
+        }
+
+        .day-heading h3 { font-size: 13px; }
+
+        .day-heading span {
+            color: var(--muted);
+            font-size: 10px;
+        }
+
+        .week-event {
+            --event-color: var(--scheduled);
+            display: grid;
+            grid-template-columns: 8px 1fr auto;
+            gap: 9px;
+            align-items: center;
+            padding: 8px 12px;
+            border-top: 1px solid rgba(181, 205, 219, 0.07);
+        }
+
+        .week-event.past { opacity: 0.4; }
+
+        .week-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--event-color);
+        }
+
+        .week-title {
+            min-width: 0;
+            overflow: hidden;
+            font-size: 12px;
+            font-weight: 650;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .week-time {
+            color: var(--muted);
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .empty-day {
+            display: grid;
+            min-height: 500px;
+            place-items: center;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .study { --event-color: var(--study); }
+        .project { --event-color: var(--project); }
+        .work { --event-color: var(--work); }
+        .planning { --event-color: var(--planning); }
+        .personal { --event-color: var(--personal); }
+        .scheduled { --event-color: var(--scheduled); }
+        .buffer { --event-color: var(--buffer); }
+
+        @media (max-width: 1050px) {
+            .layout { grid-template-columns: 1fr; }
+            .week-list { max-height: none; }
+        }
+
+        @media (max-width: 680px) {
+            .dashboard { padding: 12px; }
+
+            .topbar,
+            .panel-heading {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .refresh { display: none; }
+            .legend { justify-content: flex-start; }
+            .status-grid { grid-template-columns: 1fr; }
+
+            .timeline {
+                height: 760px;
+                margin-left: 58px;
+            }
+
+            .all-day-row { margin-left: 58px; }
+
+            .hour-label {
+                right: calc(100% + 9px);
+                width: 48px;
+                font-size: 10px;
+            }
         }
     </style>
 </head>
 
 <body>
-
-<div class="dashboard">
-
-    <h1>🖥️ LittleBuilds Schedule Dashboard</h1>
-
-    <div class="status-grid">
-
-        <div class="card">
-            <div class="label">Now</div>
-            <div class="big-text">{{ now_event.title }}</div>
-            <p>{{ now_event.time }}</p>
+<main class="dashboard">
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark" aria-hidden="true">🖥️</div>
+            <div>
+                <div class="eyebrow">Personal command centre</div>
+                <h1>LittleBuilds Schedule</h1>
+            </div>
         </div>
 
-        <div class="card">
-            <div class="label">What's Next</div>
-            <div class="big-text">{{ next_event.title }}</div>
-            <p>{{ next_event.time }}</p>
+        <div class="refresh">
+            <span class="live-dot"></span>
+            Live calendar · refreshed {{ refreshed_at }}
         </div>
+    </header>
 
+    <div class="layout">
+        <section class="panel day-panel">
+            <div class="panel-heading">
+                <div>
+                    <div class="eyebrow">Today</div>
+                    <h2>{{ today_heading }}</h2>
+                </div>
+
+                <div class="legend" aria-label="Schedule colours">
+                    <span><i style="background: var(--study)"></i>Study</span>
+                    <span><i style="background: var(--project)"></i>IT project</span>
+                    <span><i style="background: var(--work)"></i>Work</span>
+                    <span><i style="background: var(--planning)"></i>Planning</span>
+                    <span><i style="background: var(--personal)"></i>Personal</span>
+                </div>
+            </div>
+
+            {% if today_all_day_events %}
+                <div class="all-day-row">
+                    <strong>All day</strong>
+                    {% for event in today_all_day_events %}
+                        <span class="all-day-event {{ event.theme_class }}">
+                            {{ event.title }}
+                        </span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="timeline" aria-label="Today's schedule timeline">
+                {% for hour in timeline_hours %}
+                    <div class="hour-line" style="top: {{ hour.top }}%;">
+                        <span class="hour-label">{{ hour.label }}</span>
+                    </div>
+                {% endfor %}
+
+                {% if now_position is not none %}
+                    <div
+                        class="now-line"
+                        style="top: {{ now_position }}%;"
+                        title="Current time"
+                    ></div>
+                {% endif %}
+
+                {% for event in today_timeline_events %}
+                    <article
+                        class="event-block {{ event.theme_class }} {{ event.status }}"
+                        style="top: {{ event.top }}%; height: {{ event.height }}%;"
+                    >
+                        <div class="event-title">{{ event.title }}</div>
+                        <div class="event-meta">
+                            <span>{{ event.time }}</span>
+                            <span class="category-chip">{{ event.theme_label }}</span>
+                        </div>
+                    </article>
+                {% else %}
+                    <div class="empty-day">
+                        <div>
+                            <strong>Nothing scheduled</strong>
+                            <p>Your day is open.</p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <aside class="side">
+            <div class="status-grid">
+                <section class="status-card {{ now_event.theme_class }}">
+                    <div class="status-label">Now</div>
+                    <div class="status-title">{{ now_event.title }}</div>
+                    <div class="status-time">{{ now_event.time }}</div>
+                </section>
+
+                <section class="status-card {{ next_event.theme_class }}">
+                    <div class="status-label">What's next</div>
+                    <div class="status-title">{{ next_event.title }}</div>
+                    <div class="status-time">{{ next_event.time }}</div>
+                </section>
+            </div>
+
+            <section class="panel week-panel">
+                <div class="panel-heading">
+                    <div>
+                        <div class="eyebrow">Coming up</div>
+                        <h2>This week</h2>
+                    </div>
+                </div>
+
+                <div class="week-list">
+                    {% for group in week_groups %}
+                        <section class="day-group{% if group.is_today %} today{% endif %}">
+                            <div class="day-heading">
+                                <h3>
+                                    {{ group.day }}
+                                    {% if group.is_today %} · Today{% endif %}
+                                </h3>
+                                <span>{{ group.date }}</span>
+                            </div>
+
+                            {% for event in group.events %}
+                                <div class="week-event {{ event.theme_class }} {{ event.status }}">
+                                    <span class="week-dot"></span>
+                                    <span class="week-title">{{ event.title }}</span>
+                                    <span class="week-time">{{ event.time }}</span>
+                                </div>
+                            {% endfor %}
+                        </section>
+                    {% else %}
+                        <div class="empty-day">
+                            <div>
+                                <strong>Nothing scheduled</strong>
+                                <p>The rest of the week is clear.</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </section>
+        </aside>
     </div>
-
-    <div class="schedule-grid">
-
-        <div class="card">
-            <div class="label">Today</div>
-
-            {% for event in today_events %}
-                <p>{{ event }}</p>
-            {% endfor %}
-        </div>
-
-        <div class="card">
-            <div class="label">This Week</div>
-
-            {% for event in week_events %}
-                <p>{{ event }}</p>
-            {% endfor %}
-        </div>
-
-    </div>
-
-</div>
-
+</main>
 </body>
 </html>
